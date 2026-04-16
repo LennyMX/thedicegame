@@ -1,7 +1,8 @@
+package com.example.thedicegame;
 public class Persona {
     private int id;
     private int tiempoEntrada;
-    private int tiempoSalida;
+    private int tiempoSalida=-1;
     private boolean esNueva;
 
     public Persona(int id, int tiempoEntrada) {
@@ -11,7 +12,6 @@ public class Persona {
     }
 
     public int getId() {
-
         return id;
     }
 
@@ -35,4 +35,9 @@ public class Persona {
     public void setEsNueva(boolean v) {
         this.esNueva = v;
     }
+
+    public int getDuracion() {
+        return tiempoSalida - tiempoEntrada;
+    }
 }
+
