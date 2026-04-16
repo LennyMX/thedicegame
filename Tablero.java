@@ -52,7 +52,7 @@ public class Tablero extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        int[] tablero = simulador.getTablero(); // 🔥 obtenemos datos reales
+        int[] tablero = simulador.getTablero(); 
         int[] dadosValores = simulador.getDados();
         for (int i = 0; i < 10; i++) {
 
@@ -96,7 +96,7 @@ public class Tablero extends JPanel {
         int total = simulador.getTotalProcesados();
 
         int inicioX = 50;   // posición izquierda
-        int inicioY = 300;  // posición vertical
+        int inicioY = 400;  // posición vertical
 
         int columnas = 5;   // ancho de la pila
         int espacio = 14;
