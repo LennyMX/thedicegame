@@ -7,11 +7,11 @@ import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javax.swing.*;
-import java.util.List;
+
 
 public class Graficas extends JFrame {
 
-    public Graficas(String titulo, List<Integer> datos) {
+    public Graficas(String titulo, int[] datos) {
         setTitle(titulo);
         setSize(850, 550);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -25,13 +25,14 @@ public class Graficas extends JFrame {
         setVisible(true);
     }
 
-    private void initFX(JFXPanel fxPanel, String titulo, List<Integer> datos) {
+    private void initFX(JFXPanel fxPanel, String titulo, int[] datos) {
         CategoryAxis xAxis = new CategoryAxis();
         NumberAxis yAxis = new NumberAxis();
+
         if (titulo.equals("Throughput")) {
             xAxis.setLabel("Turn");
             yAxis.setLabel("Cumulative Out");
-            yAxis.setUpperBound(70); 
+            yAxis.setUpperBound(70);
             yAxis.setAutoRanging(false);
         } else if (titulo.equals("Number in system")) {
             xAxis.setLabel("Turn");
@@ -40,7 +41,7 @@ public class Graficas extends JFrame {
         } else if (titulo.equals("Time in system")) {
             xAxis.setLabel("Order of arrival");
             yAxis.setLabel("Turns to complete");
-            yAxis.setLowerBound(8); 
+            yAxis.setLowerBound(8);
             yAxis.setAutoRanging(true);
         }
 
@@ -52,13 +53,16 @@ public class Graficas extends JFrame {
 
         XYChart.Series<String, Number> series = new XYChart.Series<>();
 
-        
-        for (int i = 0; i < datos.size(); i++) {
+
+        for (int i = 0; i < datos.length; i++) {
+            if (titulo.equals("Time in system") && datos[i] == 0) continue;
+
             String etiquetaX = (titulo.equals("Time in system")) ? String.valueOf(i + 1) : String.valueOf(i);
-            series.getData().add(new XYChart.Data<>(etiquetaX, datos.get(i)));
+            series.getData().add(new XYChart.Data<>(etiquetaX, datos[i]));
         }
 
         barChart.getData().add(series);
+
         series.nodeProperty().addListener((obs, oldNode, newNode) -> {
             series.getData().forEach(d -> {
                 if (d.getNode() != null) d.getNode().setStyle("-fx-bar-fill: #5dade2;");
