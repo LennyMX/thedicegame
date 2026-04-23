@@ -133,10 +133,22 @@ public class Interfaz extends JFrame {
                 break;
 
             case "Time in system":
-                if (simulador.getTiemposDeCiclo().isEmpty()) {
+                if (simulador.getTotalProcesados() == 0) {
                     JOptionPane.showMessageDialog(this, "No hay datos de salida aún.");
                 } else {
                     new Graficas("Time in system", simulador.getTiemposDeCiclo());
+                }
+                break;
+
+            case "Your performance":
+                if (turnos < 20) {
+                    JOptionPane.showMessageDialog(this, "The simulation must reach 20 turns first.");
+                } else {
+                    int total = simulador.getTotalProcesados();
+                    String mensaje = "Total Units Shipped: " + total + "\n" +
+                            "Target: 53 units\n" +
+                            "Efficiency: " + String.format("%.1f", (total / 53.0) * 100) + "%";
+                    JOptionPane.showMessageDialog(this, mensaje, "Performance Results", JOptionPane.INFORMATION_MESSAGE);
                 }
                 break;
 
