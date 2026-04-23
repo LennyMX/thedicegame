@@ -1,29 +1,23 @@
 package com.example.thedicegame;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Simulador {
 
-    private List<Estacion> estaciones;
+    private Estacion[] estaciones;
     private int tiempo;
     private int contadorPersonas;
     private int totalProcesados;
+    private int turnoActual = 0;
     private int[][] historialDados = new int[21][10];
     private int[][] historialMovidos = new int[21][10];
-    private int turnoActual = 0;
-
-    // Listas para las gráficas
-    private List<Integer> historialThroughput;
-    private List<Integer> historialWIP;
-    private List<Integer> tiemposDeCiclo = new ArrayList<>();
+    private int[] historialThroughput = new int[21];
+    private int[] historialWIP = new int[21];
+    private int[] tiemposDeCiclo = new int[1000];
+    private int totalTiemposRegistrados = 0;
 
     public Simulador() {
-        estaciones = new ArrayList<>();
-        historialThroughput = new ArrayList<>();
-        historialWIP = new ArrayList<>();
-
+        estaciones = new Estacion[10];
         for (int i = 0; i < 10; i++) {
-            estaciones.add(new Estacion(i + 1));
+            estaciones[i] = new Estacion(i + 1);
         }
     }
 
@@ -31,88 +25,71 @@ public class Simulador {
         contadorPersonas = 1;
         tiempo = 0;
         totalProcesados = 0;
-        historialThroughput.clear();
-        historialWIP.clear();
-        tiemposDeCiclo.clear();
-
+        totalTiemposRegistrados = 0;
         turnoActual = 0;
-        historialDados = new int[21][10];
-        historialMovidos = new int[21][10];
 
         for (Estacion e : estaciones) {
             e.getColaActual().limpiar();
-            //4 personas iniciales para cada estación
+            // Llenado inicial: 4 personas por estación
             for (int i = 0; i < 4; i++) {
-                e.getColaActual().insertar(new Persona(contadorPersonas++, 0));
+                e.recibir(new Persona(contadorPersonas++, 0));
             }
         }
-        historialThroughput.add(0);
-        historialWIP.add(calcularPersonasEnSistema());
+        historialThroughput[0] = 0;
+        historialWIP[0] = calcularPersonasEnSistema();
     }
-
     public void tirarDados() {
+        if (turnoActual >= 20) return;
         for (int i = 0; i < 10; i++) {
-            estaciones.get(i).tirarDado();
-            historialDados[turnoActual + 1][i] = estaciones.get(i).getCapacidad();
+            estaciones[i].tirarDado();
+            historialDados[turnoActual + 1][i] = estaciones[i].getCapacidad();
         }
     }
-
     public void moverPersonas() {
         turnoActual++;
         tiempo++;
 
-        // 1. Procesar cada estación 
-        List<ColaSimple<Persona>> salidasPorEstacion = new ArrayList<>();
-        for (Estacion e : estaciones) {
-            salidasPorEstacion.add(e.procesar());
-        }
-
-        // 2. Registrar Actividad 
+        // 1. Primero calculamos cuántos se van a mover de cada estación
+        // para que no haya "saltos" de dos estaciones en el mismo turno.
+        int[] cantidadAMover = new int[10];
         for (int i = 0; i < 10; i++) {
-            // Guardamos cuántos lograron salir de cada estación antes de moverlos
-            historialMovidos[turnoActual][i] = salidasPorEstacion.get(i).size();
+            int enCola = estaciones[i].getColaActual().size();
+            int dado = estaciones[i].getCapacidad();
+            // Solo pueden moverse los que ya estaban al iniciar el turno
+            cantidadAMover[i] = Math.min(enCola, dado);
+            historialMovidos[turnoActual][i] = cantidadAMover[i];
         }
-        // 3. Mover las personas a la siguiente posición
-        for (int i = 0; i < estaciones.size(); i++) {
 
-            //1: Entra tanta gente nueva como diga su dado 
-            if (i == 0) {
-                int capacidadEntrada = estaciones.get(0).getCapacidad();
-                for (int j = 0; j < capacidadEntrada; j++) {
-                    estaciones.get(0).recibirDirecto(new Persona(contadorPersonas++, tiempo));
-                }
-            }
+        // 2. Realizamos el movimiento físico
+        for (int i = 9; i >= 0; i--) {
+            int aMover = cantidadAMover[i];
 
-            // MOVER DE ESTACIÓN i A i+1
-            if (i < estaciones.size() - 1) {
-                // Los que salieron de la estación actual entran a la cola de la siguiente
-                estaciones.get(i + 1).recibir(salidasPorEstacion.get(i));
-            } else {
-                // Estación 10
-                ColaSimple<Persona> terminados = salidasPorEstacion.get(i);
+            for (int j = 0; j < aMover; j++) {
+                Persona p = estaciones[i].extraer();
 
-                while (!terminados.estaVacia()) {
-                    Persona p = terminados.eliminar();
-                    if (p != null) {
-                        p.setTiempoSalida(tiempo);
-                        if (p.getTiempoEntrada() > 0) {
-                            tiemposDeCiclo.add(p.getDuracion());
-                        }
-
-                        totalProcesados++;
+                if (i == 9) { // Es la última estación
+                    p.setTiempoSalida(tiempo);
+                    if (p.getTiempoEntrada() > 0 && totalTiemposRegistrados < 1000) {
+                        tiemposDeCiclo[totalTiemposRegistrados++] = p.getDuracion();
                     }
+                    totalProcesados++;
+                } else { // Pasa a la siguiente estación
+                    estaciones[i + 1].recibir(p);
                 }
             }
         }
 
-        // 4. Actualizar Colas los que llegaron nuevos pasan a ser actuales para el próximo turno
-        for (Estacion e : estaciones) {
-            e.actualizarColas();
+        // 3. Entrada de nuevas personas a la Estación 1 (según su dado)
+        int dadoEntrada = estaciones[0].getCapacidad();
+        for (int i = 0; i < dadoEntrada; i++) {
+            estaciones[0].recibir(new Persona(contadorPersonas++, tiempo));
         }
 
-        // 5. Registrar datos acumulados para las gráficas de línea/barras generales
-        historialThroughput.add(totalProcesados);
-        historialWIP.add(calcularPersonasEnSistema());
+        // 4. Registrar datos del turno
+        if (turnoActual < 21) {
+            historialThroughput[turnoActual] = totalProcesados;
+            historialWIP[turnoActual] = calcularPersonasEnSistema();
+        }
     }
 
     public int calcularPersonasEnSistema() {
@@ -122,31 +99,15 @@ public class Simulador {
         }
         return total;
     }
-
-    // Getters para la Interfaz y Gráficas
-    public List<Integer> getHistorialThroughput() { return historialThroughput; }
-    public List<Integer> getHistorialWIP() { return historialWIP; }
+    public int[] getHistorialThroughput() { return historialThroughput; }
+    public int[] getHistorialWIP() { return historialWIP; }
     public int getTotalProcesados() { return totalProcesados; }
-    public List<Estacion> getEstaciones() { return estaciones; }
-
-    public int[] getTablero() {
-        int[] tablero = new int[10];
-        for (int i = 0; i < 10; i++) {
-            tablero[i] = estaciones.get(i).getColaActual().size();
-        }
-        return tablero;
+    public Estacion[] getEstaciones() { return estaciones; }
+    public int[] getTiemposDeCiclo() { return tiemposDeCiclo; }
+    public int[][] getHistorialDados() {
+        return historialDados;
     }
-
-    public int[] getDados() {
-        int[] valores = new int[estaciones.size()];
-        for (int i = 0; i < estaciones.size(); i++) {
-            valores[i] = estaciones.get(i).getCapacidad();
-        }
-        return valores;
+    public int[][] getHistorialMovidos() {
+        return historialMovidos;
     }
-    public List<Integer> getTiemposDeCiclo() {
-        return tiemposDeCiclo;
-    }
-    public int[][] getHistorialDados() { return historialDados; }
-    public int[][] getHistorialMovidos() { return historialMovidos; }
 }
