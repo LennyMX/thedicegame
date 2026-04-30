@@ -1,6 +1,7 @@
 package com.example.thedicegame;
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 
 public class Interfaz extends JFrame {
 
@@ -30,6 +31,7 @@ public class Interfaz extends JFrame {
         panelLateral.setBackground(new Color(60, 34, 34));
         panelLateral.setPreferredSize(new Dimension(200, 0));
         panelLateral.setLayout(new BorderLayout());
+
         JPanel pnlBotonesGraficas = new JPanel(new GridLayout(5, 1, 0, 10));
         pnlBotonesGraficas.setOpaque(false);
         pnlBotonesGraficas.setBorder(BorderFactory.createEmptyBorder(20, 10, 0, 10));
@@ -40,12 +42,13 @@ public class Interfaz extends JFrame {
             btn.setPreferredSize(new Dimension(170, 40));
             btn.setBackground(new Color(210, 200, 190));
             btn.setFocusable(false);
-            btn.addActionListener(e -> abrirGrafica(nombre));
+            // Variable final para evitar errores en la lambda
+            final String seleccion = nombre;
+            btn.addActionListener(e -> abrirGrafica(seleccion));
             pnlBotonesGraficas.add(btn);
         }
         panelLateral.add(pnlBotonesGraficas, BorderLayout.NORTH);
 
-        panelLateral.add(pnlBotonesGraficas, BorderLayout.NORTH);
         JPanel pnlTurnos = new JPanel();
         pnlTurnos.setLayout(new BoxLayout(pnlTurnos, BoxLayout.Y_AXIS));
         pnlTurnos.setOpaque(false);
@@ -66,13 +69,15 @@ public class Interfaz extends JFrame {
         pnlTurnos.add(Box.createVerticalGlue());
 
         panelLateral.add(pnlTurnos, BorderLayout.CENTER);
+
         btnAccion = new JButton("Start");
         btnAccion.setPreferredSize(new Dimension(200, 100));
         btnAccion.setFont(new Font("Arial", Font.PLAIN, 36));
         btnAccion.setBackground(new Color(210, 200, 190));
         btnAccion.setFocusable(false);
 
-        btnAccion.addActionListener(e -> manejarAccion());
+        // Referencia directa al método de la instancia
+        btnAccion.addActionListener(e -> this.manejarAccion());
         panelLateral.add(btnAccion, BorderLayout.SOUTH);
 
         add(panelLateral, BorderLayout.EAST);
@@ -125,35 +130,57 @@ public class Interfaz extends JFrame {
     private void abrirGrafica(String tipo) {
         switch (tipo) {
             case "Throughput":
-                new Graficas("Throughput", simulador.getHistorialThroughput());
+                ArrayList<Integer> listaT = simulador.getHistorialThroughput();
+                int[] arrT = new int[listaT.size()];
+                for(int i=0; i<listaT.size(); i++) arrT[i] = listaT.get(i);
+                new Graficas("Throughput", arrT);
                 break;
 
             case "Number in system":
-                new Graficas("Number in system", simulador.getHistorialWIP());
+                ArrayList<Integer> listaW = simulador.getHistorialWIP();
+                int[] arrW = new int[listaW.size()];
+                for(int i=0; i<listaW.size(); i++) arrW[i] = listaW.get(i);
+                new Graficas("Number in system", arrW);
                 break;
 
             case "Time in system":
                 if (simulador.getTotalProcesados() == 0) {
                     JOptionPane.showMessageDialog(this, "No hay datos de salida aún.");
                 } else {
-                    new Graficas("Time in system", simulador.getTiemposDeCiclo());
+                    ArrayList<Integer> listaC = simulador.getTiemposDeCiclo();
+                    int[] arrC = new int[listaC.size()];
+                    for(int i=0; i<listaC.size(); i++) arrC[i] = listaC.get(i);
+                    new Graficas("Time in system", arrC);
                 }
                 break;
 
             case "Your performance":
-                if (turnos < 20) {
-                    JOptionPane.showMessageDialog(this, "The simulation must reach 20 turns first.");
-                } else {
-                    int total = simulador.getTotalProcesados();
-                    String mensaje = "Total Units Shipped: " + total + "\n" +
-                            "Target: 53 units\n" +
-                            "Efficiency: " + String.format("%.1f", (total / 53.0) * 100) + "%";
-                    JOptionPane.showMessageDialog(this, mensaje, "Performance Results", JOptionPane.INFORMATION_MESSAGE);
-                }
+                int total = simulador.getTotalProcesados();
+                String mensaje = "Total Units Shipped: " + total + "\n" +
+                        "Target: 53 units\n" +
+                        "Efficiency: " + String.format("%.1f", (total / 53.0) * 100) + "%";
+                JOptionPane.showMessageDialog(this, mensaje, "Performance Results", JOptionPane.INFORMATION_MESSAGE);
                 break;
 
             case "Activity":
-                new GraficaActividad(simulador.getHistorialDados(), simulador.getHistorialMovidos());
+                int[][] todosLosDados = new int[21][10];
+                int[][] todosLosMovidos = new int[21][10];
+
+                for (int i = 0; i < 10; i++) {
+                    Estacion e = simulador.getEstaciones().eliminar();
+                    ArrayList<Integer> hD = e.getHistorialDados();
+                    ArrayList<Integer> hM = e.getHistorialMovidos();
+
+                    for (int t = 0; t < hD.size() && t < 21; t++) {
+                        todosLosDados[t][i] = hD.get(t);
+                    }
+                    for (int t = 0; t < hM.size() && t < 21; t++) {
+                        todosLosMovidos[t][i] = hM.get(t);
+                    }
+
+                    simulador.getEstaciones().insertar(e);
+                }
+                new GraficaActividad(todosLosDados, todosLosMovidos);
                 break;
         }
     }
