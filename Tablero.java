@@ -42,39 +42,37 @@ public class Tablero extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // OBTENER LAS ESTACIONES REALES
-        Estacion[] estaciones = simulador.getEstaciones();
-
+        // IMPORTANTE: Como 'estaciones' ahora es una Cola, no podemos usar índices [i].
+        // Vamos a rotarla 10 veces para dibujar cada una en su posición de 'casillas'.
         for (int i = 0; i < 10; i++) {
-            Estacion est = estaciones[i];
+            // Sacamos la estación del frente
+            Estacion est = simulador.getEstaciones().eliminar();
+
             int x = casillas[i].x;
             int y = casillas[i].y;
 
-            // Dibujar el cuadro de la estación
             g.setColor(Color.BLACK);
             g.drawRect(x, y, 60, 60);
 
-            // CANTIDAD DE PERSONAS EN LA COLA DE LA ESTACIÓN
             int cantidadPersonas = est.getColaActual().size();
             dibujarJugadores(g, cantidadPersonas, x, y);
+            
+            int valorDado = est.getUltimoValorDado();
 
-            // VALOR DEL DADO ACTUAL DE ESA ESTACIÓN
-            int valorDado = est.getCapacidad();
-
-            if (valorDado > 0) {
-                // Dibujamos el dado arriba de la casilla
+            if (valorDado > 0 && valorDado <= 6) {
                 g.drawImage(dados[valorDado - 1], x + 15, y - 35, 30, 30, this);
             }
 
-            // Dibujar icono decorativo de persona al lado
             if (persona != null) {
                 g.drawImage(persona, x + 65, y + 10, 40, 40, this);
             }
 
-            // Dibujar el número de personas debajo del cuadro
             g.setColor(Color.BLACK);
             g.setFont(new Font("Arial", Font.BOLD, 14));
             g.drawString(String.valueOf(cantidadPersonas), x + 20, y + 80);
+
+            // REINSERTAMOS para no perder la estación y que la cola siga teniendo 10
+            simulador.getEstaciones().insertar(est);
         }
 
         dibujarSalida(g);
